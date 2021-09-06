@@ -9,6 +9,9 @@
 #include <vector>
 #include <bitset>
 
+#include <SDL.h>
+#include <SDL_ttf.h>
+
 #define TERMCOLOR_USE_ANSI_ESCAPE_SEQUENCES true
 #include "termcolor.hpp"
 #include "Utils.h"

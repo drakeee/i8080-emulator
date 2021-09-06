@@ -48,7 +48,7 @@ public:
 
 		std::stringstream ss;
 		termcolor::colorize(ss);
-		ss << termcolor::grey << termcolor::on_bright_grey << std::setiosflags(std::ios::left) << std::setfill(' ') << std::setw(5) << "DEBUG" << termcolor::reset << " " << format << std::endl;
+		ss << termcolor::grey << termcolor::on_bright_grey << std::setiosflags(std::ios::left) << std::setfill(' ') << std::setw(5) << "DEBUG" << termcolor::reset << " " << format;
 
 		va_start(argList, format);
 		vprintf(ss.str().c_str(), argList);

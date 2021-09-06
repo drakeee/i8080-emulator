@@ -1,4 +1,6 @@
-﻿#include "Main.h"
+﻿//#include <limits>
+#include <chrono>
+#include "Main.h"
 
 /*
 	Space Invaders, (C) Taito 1978, Midway 1979    
@@ -27,300 +29,268 @@
 		$4000-:     RAM mirror
 */
 
-int Disassemble8080(unsigned char* codebuffer, int pc)
+void RenderText(SDL_Renderer* renderer, uint16_t fontSize, const char* message, int x = 0, int y = 0, int width = 0, int height = 0)
 {
-	unsigned char* code = &codebuffer[pc];
-	int opbytes = 1;
-
-	printf("%04x\t", pc);
-
-	switch (code[0])
+	if (!TTF_WasInit() && TTF_Init() == -1)
 	{
-	case 0x00: printf("NOP"); break;
-	case 0x01: printf("LXI\tB,$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x02: printf("STAX\tB"); break;
-	case 0x03: printf("INX\tB"); break;
-	case 0x04: printf("INR\tB"); break;
-	case 0x05: printf("DCR\tB"); break;
-	case 0x06: printf("MVI\tB, $%02x", code[1]); opbytes = 2; break;
-	case 0x07: printf("RLC"); break;
-	case 0x08: break;
-	case 0x09: printf("DAD\tB"); break;
-	case 0x0a: printf("LDAX\tB"); break;
-	case 0x0b: printf("DCX\tB"); break;
-	case 0x0c: printf("INR\tC"); break;
-	case 0x0d: printf("DCR\tC"); break;
-	case 0x0e: printf("MVI\tC,$%02x", code[1]); opbytes = 2; break;
-	case 0x0f: printf("RRC"); break;
-	case 0x10: break;
-	case 0x11: printf("LXI\tD,$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x12: printf("STAX\tD"); break;
-	case 0x13: printf("INX\tD"); break;
-	case 0x14: printf("INR\tD"); break;
-	case 0x15: printf("DCR\tD"); break;
-	case 0x16: printf("MVI\tD, $%02x", code[1]); opbytes = 2; break;
-	case 0x17: printf("RAL"); break;
-	case 0x18: break;
-	case 0x19: printf("DAD\tD"); break;
-	case 0x1a: printf("LDAX\tD"); break;
-	case 0x1b: printf("DCX\tD"); break;
-	case 0x1c: printf("INR\tE"); break;
-	case 0x1d: printf("DCR\tE"); break;
-	case 0x1e: printf("MVI\tE,$%02x", code[1]); opbytes = 2; break;
-	case 0x1f: printf("RAR"); break;
-	case 0x20: break;
-	case 0x21: printf("LXI\tH,$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x22: printf("SHLD\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x23: printf("INX\tH"); break;
-	case 0x24: printf("INR\tH"); break;
-	case 0x25: printf("DCR\tH"); break;
-	case 0x26: printf("MVI\tH,$%02x", code[1]); opbytes = 2; break;
-	case 0x27: printf("DAA"); break;
-	case 0x28: break;
-	case 0x29: printf("DAD\tH"); break;
-	case 0x2a: printf("LHLD\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x2b: printf("DCX\tH"); break;
-	case 0x2c: printf("INR\tL"); break;
-	case 0x2d: printf("DCR\tL"); break;
-	case 0x2e: printf("MVI\tL, $%02x", code[1]); opbytes = 2; break;
-	case 0x2f: printf("CMA"); break;
-	case 0x30: break;
-	case 0x31: printf("LXI\tSP, $%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x32: printf("STA\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x33: printf("INX\tSP"); break;
-	case 0x34: printf("INR\tM"); break;
-	case 0x35: printf("DCR\tM"); break;
-	case 0x36: printf("MVI\tM,$%02x", code[1]); opbytes = 2; break;
-	case 0x37: printf("STC"); break;
-	case 0x38: break;
-	case 0x39: printf("DAD\tSP"); break;
-	case 0x3a: printf("LDA\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x3b: printf("DCX\tSP"); break;
-	case 0x3c: printf("INR\tA"); break;
-	case 0x3d: printf("DCR\tA"); break;
-	case 0x3e: printf("MVI\tA,$%02x", code[1]); opbytes = 2; break;
-	case 0x3f: printf("CMC"); break;
-	case 0x40: printf("MOV\tB,B"); break;
-	case 0x41: printf("MOV\tB,C"); break;
-	case 0x42: printf("MOV\tB,D"); break;
-	case 0x43: printf("MOV\tB,E"); break;
-	case 0x44: printf("MOV\tB,H"); break;
-	case 0x45: printf("MOV\tB,L"); break;
-	case 0x46: printf("MOV\tB,M"); break;
-	case 0x47: printf("MOV\tB,A"); break;
-	case 0x48: printf("MOV\tC,B"); break;
-	case 0x49: printf("MOV\tC,C"); break;
-	case 0x4a: printf("MOV\tC,D"); break;
-	case 0x4b: printf("MOV\tC,E"); break;
-	case 0x4c: printf("MOV\tC,H"); break;
-	case 0x4d: printf("MOV\tC,L"); break;
-	case 0x4e: printf("MOV\tC,M"); break;
-	case 0x4f: printf("MOV\tC,A"); break;
-	case 0x50: printf("MOV\tD,B"); break;
-	case 0x51: printf("MOV\tD,C"); break;
-	case 0x52: printf("MOV\tD,D"); break;
-	case 0x53: printf("MOV\tD,E"); break;
-	case 0x54: printf("MOV\tD,H"); break;
-	case 0x55: printf("MOV\tD,L"); break;
-	case 0x56: printf("MOV\tD,M"); break;
-	case 0x57: printf("MOV\tD,A"); break;
-	case 0x58: printf("MOV\tE,B"); break;
-	case 0x59: printf("MOV\tE,C"); break;
-	case 0x5a: printf("MOV\tE,D"); break;
-	case 0x5b: printf("MOV\tE,E"); break;
-	case 0x5c: printf("MOV\tE,H"); break;
-	case 0x5d: printf("MOV\tE,L"); break;
-	case 0x5e: printf("MOV\tE,M"); break;
-	case 0x5f: printf("MOV\tE,A"); break;
-	case 0x60: printf("MOV\tH,B"); break;
-	case 0x61: printf("MOV\tH,C"); break;
-	case 0x62: printf("MOV\tH,D"); break;
-	case 0x63: printf("MOV\tH,E"); break;
-	case 0x64: printf("MOV\tH,H"); break;
-	case 0x65: printf("MOV\tH,L"); break;
-	case 0x66: printf("MOV\tH,M"); break;
-	case 0x67: printf("MOV\tH,A"); break;
-	case 0x68: printf("MOV\tL,B"); break;
-	case 0x69: printf("MOV\tL,C"); break;
-	case 0x6a: printf("MOV\tL,D"); break;
-	case 0x6b: printf("MOV\tL,E"); break;
-	case 0x6c: printf("MOV\tL,H"); break;
-	case 0x6d: printf("MOV\tL,L"); break;
-	case 0x6e: printf("MOV\tL,M"); break;
-	case 0x6f: printf("MOV\tL,A"); break;
-	case 0x70: printf("MOV\tM,B"); break;
-	case 0x71: printf("MOV\tM,C"); break;
-	case 0x72: printf("MOV\tM,D"); break;
-	case 0x73: printf("MOV\tM,E"); break;
-	case 0x74: printf("MOV\tM,H"); break;
-	case 0x75: printf("MOV\tM,L"); break;
-	case 0x76: printf("HLT"); break;
-	case 0x77: printf("MOV\tM,A"); break;
-	case 0x78: printf("MOV\tA,B"); break;
-	case 0x79: printf("MOV\tA,C"); break;
-	case 0x7a: printf("MOV\tA,D"); break;
-	case 0x7b: printf("MOV\tA,E"); break;
-	case 0x7c: printf("MOV\tA,H"); break;
-	case 0x7d: printf("MOV\tA,L"); break;
-	case 0x7e: printf("MOV\tA,M"); break;
-	case 0x7f: printf("MOV\tA,A"); break;
-	case 0x80: printf("ADD\tB"); break;
-	case 0x81: printf("ADD\tC"); break;
-	case 0x82: printf("ADD\tD"); break;
-	case 0x83: printf("ADD\tE"); break;
-	case 0x84: printf("ADD\tH"); break;
-	case 0x85: printf("ADD\tL"); break;
-	case 0x86: printf("ADD\tM"); break;
-	case 0x87: printf("ADD\tA"); break;
-	case 0x88: printf("ADC\tB"); break;
-	case 0x89: printf("ADC\tC"); break;
-	case 0x8a: printf("ADC\tD"); break;
-	case 0x8b: printf("ADC\tE"); break;
-	case 0x8c: printf("ADC\tH"); break;
-	case 0x8d: printf("ADC\tL"); break;
-	case 0x8e: printf("ADC\tM"); break;
-	case 0x8f: printf("ADC\tA"); break;
-	case 0x90: printf("SUB\tB"); break;
-	case 0x91: printf("SUB\tC"); break;
-	case 0x92: printf("SUB\tD"); break;
-	case 0x93: printf("SUB\tE"); break;
-	case 0x94: printf("SUB\tH"); break;
-	case 0x95: printf("SUB\tL"); break;
-	case 0x96: printf("SUB\tM"); break;
-	case 0x97: printf("SUB\tA"); break;
-	case 0x98: printf("SBB\tB"); break;
-	case 0x99: printf("SBB\tC"); break;
-	case 0x9a: printf("SBB\tD"); break;
-	case 0x9b: printf("SBB\tE"); break;
-	case 0x9c: printf("SBB\tH"); break;
-	case 0x9d: printf("SBB\tL"); break;
-	case 0x9e: printf("SBB\tM"); break;
-	case 0x9f: printf("SBB\tA"); break;
-	case 0xa0: printf("ANA\tB"); break;
-	case 0xa1: printf("ANA\tC"); break;
-	case 0xa2: printf("ANA\tD"); break;
-	case 0xa3: printf("ANA\tE"); break;
-	case 0xa4: printf("ANA\tH"); break;
-	case 0xa5: printf("ANA\tL"); break;
-	case 0xa6: printf("ANA\tM"); break;
-	case 0xa7: printf("ANA\tA"); break;
-	case 0xa8: printf("XRA\tB"); break;
-	case 0xa9: printf("XRA\tC"); break;
-	case 0xaa: printf("XRA\tD"); break;
-	case 0xab: printf("XRA\tE"); break;
-	case 0xac: printf("XRA\tH"); break;
-	case 0xad: printf("XRA\tL"); break;
-	case 0xae: printf("XRA\tM"); break;
-	case 0xaf: printf("XRA\tA"); break;
-	case 0xb0: printf("ORA\tB"); break;
-	case 0xb1: printf("ORA\tC"); break;
-	case 0xb2: printf("ORA\tD"); break;
-	case 0xb3: printf("ORA\tE"); break;
-	case 0xb4: printf("ORA\tH"); break;
-	case 0xb5: printf("ORA\tL"); break;
-	case 0xb6: printf("ORA\tM"); break;
-	case 0xb7: printf("ORA\tA"); break;
-	case 0xb8: printf("CMP\tB"); break;
-	case 0xb9: printf("CMP\tC"); break;
-	case 0xba: printf("CMP\tD"); break;
-	case 0xbb: printf("CMP\tE"); break;
-	case 0xbc: printf("CMP\tH"); break;
-	case 0xbd: printf("CMP\tL"); break;
-	case 0xbe: printf("CMP\tM"); break;
-	case 0xbf: printf("CMP\tA"); break;
-	case 0xc0: printf("RNZ"); break;
-	case 0xc1: printf("POP\tB"); break;
-	case 0xc2: printf("JNZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xc3: printf("JMP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xc4: printf("CNZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xc5: printf("PUSH\tB"); break;
-	case 0xc6: printf("ADI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xc7: printf("RST\t0"); break;
-	case 0xc8: printf("RZ"); break;
-	case 0xc9: printf("RET"); break;
-	case 0xca: printf("JZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xcb: break;
-	case 0xcc: printf("CZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xcd: printf("CALL\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xce: printf("ACI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xcf: printf("RST\t1"); break;
-	case 0xd0: printf("RNC"); break;
-	case 0xd1: printf("POP\tD"); break;
-	case 0xd2: printf("JNC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xd3: printf("OUT\t$%02x", code[1]); opbytes = 2; break;
-	case 0xd4: printf("CNC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xd5: printf("PUSH\tD"); break;
-	case 0xd6: printf("SUI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xd7: printf("RST\t2"); break;
-	case 0xd8: printf("RC"); break;
-	case 0xd9: break;
-	case 0xda: printf("JC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xdb: printf("IN\t$%02x", code[1]); opbytes = 2; break;
-	case 0xdc: printf("CC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xdd: break;
-	case 0xde: printf("SBI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xdf: printf("RST\t3"); break;
-	case 0xe0: printf("RPO"); break;
-	case 0xe1: printf("POP\tH"); break;
-	case 0xe2: printf("JPO\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xe3: printf("XTHL"); break;
-	case 0xe4: printf("CPO\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xe5: printf("PUSH\tH"); break;
-	case 0xe6: printf("ANI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xe7: printf("RST\t4"); break;
-	case 0xe8: printf("RPE"); break;
-	case 0xe9: printf("PCHL"); break;
-	case 0xea: printf("JPE\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xeb: printf("XCHG"); break;
-	case 0xec: printf("CPE\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xed: break;
-	case 0xee: printf("XRI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xef: printf("RST\t5"); break;
-	case 0xf0: printf("RP"); break;
-	case 0xf1: printf("POP\tPSW"); break;
-	case 0xf2: printf("JP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xf3: printf("DI"); break;
-	case 0xf4: printf("CP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xf5: printf("PUSH\tPSW"); break;
-	case 0xf6: printf("ORI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xf7: printf("RST\t6"); break;
-	case 0xf8: printf("RM"); break;
-	case 0xf9: printf("SPHL"); break;
-	case 0xfa: printf("JM\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xfb: printf("EI"); break;
-	case 0xfc: printf("CM\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xfd: break;
-	case 0xfe: printf("CPI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xff: printf("RST\t7"); break;
+		Utils::PrintError("Unable to initialize TTF: %s", TTF_GetError());
+		return;
 	}
 
-	//printf("\t ret: %d\n", opbytes);
-	printf("\n");
-	return opbytes;
+	TTF_Font* font = TTF_OpenFont("Roboto-Light.ttf", fontSize);
+	SDL_Color White = { 255, 255, 255 };
+
+	// as TTF_RenderText_Solid could only be used on
+	// SDL_Surface then you have to create the surface first
+	SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, message, White);
+
+	// now you can convert it into a texture
+	SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+
+	SDL_Rect Message_rect; //create a rect
+	Message_rect.x = x;  //controls the rect's x coordinate 
+	Message_rect.y = y; // controls the rect's y coordinte
+	Message_rect.w = width; // controls the width of the rect
+	Message_rect.h = height; // controls the height of the rect
+
+	TTF_SizeText(font, message, &Message_rect.w, &Message_rect.h);
+
+	SDL_RenderCopy(renderer, Message, NULL, &Message_rect);
+
+	SDL_FreeSurface(surfaceMessage);
+	SDL_DestroyTexture(Message);
+	TTF_CloseFont(font);
 }
 
+void Render(Emulator8080*);
+bool FullDraw = false;
+
+uint64_t GetCurrentTimeEx(std::chrono::time_point<std::chrono::high_resolution_clock>* StartTime)
+{
+	auto TimeDifference = std::chrono::high_resolution_clock::now() - *StartTime;
+	return std::chrono::duration_cast<std::chrono::microseconds>(TimeDifference).count(); // Get Microseconds
+}
+
+#undef main
 int main()
 {
 	const char* fileName = "invaders.rom";
 	Emulator8080* emulator = new Emulator8080(fileName);
 
-	auto* cpu = emulator->GetCPU();
-	//hexdumprom(emulator->GetMemory());
-	cpu->B = 0;
-	cpu->C = 0xFF;
-	cpu->H = 20;
-	cpu->L = 10;
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	{
+		Utils::PrintError("Failed to initialize the SDL2 library");
+		return -1;
+	}
 
-	//uint16_t *ptr = (uint16_t*)&emulator->GetCPU()->l;
-	//00010101
-	uint8_t num = 0b00010101;
+	emulator->window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 680, 480, 0);
+	emulator->renderer = SDL_CreateRenderer(emulator->window, -1, SDL_RENDERER_ACCELERATED);
+	emulator->texture = SDL_CreateTexture(emulator->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, emulator->GameWidth, emulator->GameHeight);
+
+	bool quit = false;
 	
-	printf("%s\n", std::bitset<8>(num).to_string().c_str());
-	printf("%s\n", std::bitset<8>(~num).to_string().c_str());
+	auto cpu = emulator->GetCPU();
+
+	auto lastInterrupt = time(NULL);
+
+	auto StartTime = std::chrono::high_resolution_clock::now();
+	auto lastInterrupt2 = GetCurrentTimeEx(&StartTime);
+	uint64_t LastDraw = 0;
+
+	const uint8_t* Keyboard = SDL_GetKeyboardState(NULL);
+
+	while (!quit)
+	{
+		if (cpu->SP < 0x2000)
+		{
+			quit = true;
+			Utils::PrintError("Stack Pointer invalid address");
+			break;
+		}
+		/*if (nrun >= next)
+		{
+			wait = false;
+			nrun = 0;
+			next = -1;
+
+			printf("A: %02x | AF: %04x | BC: %04x | DE: %04x | HL: %04x | PC: %04x | SP: %04x\n", cpu->A, (cpu->A << 8) | emulator->GetPSW(), *cpu->BC, *cpu->DE, *cpu->HL, cpu->PC, cpu->SP);
+		}
+
+		if (!wait)
+		{
+			printf("Enter N run: ");
+			scanf("%d", &next);
+			wait = true;
+		}*/
+
+		SDL_Event event;
+		if (SDL_PollEvent(&event))
+		{
+			if (event.type == SDL_QUIT)
+				quit = true;
+
+			/*if (event.type == SDL_KEYUP)
+			{
+				printf("SDL_KEYUP: %d\n", event.key.keysym.sym);
+
+				SDL_Keycode key = event.key.keysym.sym;
+				if (key == 118)
+				{
+					printf("SDL_KEYUP: %d\n", event.key.keysym.sym);
+					FILE* file = fopen("dump.vram", "wb");
+					if (file == nullptr)
+					{
+						return -1;
+					}
+
+					fwrite(emulator->GetVRAM(), 7 * 1024, 1, file);
+					fclose(file);
+				}
+				if (key == 114)
+				{
+					printf("SDL_KEYUP: %d\n", event.key.keysym.sym);
+					FILE* file = fopen("dump.ram", "wb");
+					if (file == nullptr)
+					{
+						return -1;
+					}
+
+					fwrite(emulator->GetRAM(), 7 * 1024, 1, file);
+					fclose(file);
+				}
+			}*/
+		}
+
+		cpu->InPort[0] &= 0b10001111;
+		cpu->InPort[1] &= 0b10001000;
+		cpu->InPort[2] &= 0b10001011;
+
+		if (Keyboard[SDL_SCANCODE_SPACE]) { // Fire
+			cpu->InPort[0] |= 1 << 4;
+			cpu->InPort[1] |= 1 << 4;
+			cpu->InPort[2] |= 1 << 4; // P2
+		}
+
+		if (Keyboard[SDL_SCANCODE_A] || Keyboard[SDL_SCANCODE_LEFT]) { // Left
+			cpu->InPort[0] |= 1 << 5;
+			cpu->InPort[1] |= 1 << 5;
+			cpu->InPort[2] |= 1 << 5; // P2
+		}
+
+		if (Keyboard[SDL_SCANCODE_D] || Keyboard[SDL_SCANCODE_RIGHT]) { // Right
+			cpu->InPort[0] |= 1 << 6;
+			cpu->InPort[1] |= 1 << 6;
+			cpu->InPort[2] |= 1 << 6; // P2
+		}
+
+		if (Keyboard[SDL_SCANCODE_RETURN]) // Credit
+			cpu->InPort[1] |= 1 << 0;
+
+		if (Keyboard[SDL_SCANCODE_1]) // 1P Start
+			cpu->InPort[1] |= 1 << 2;
+
+		if (Keyboard[SDL_SCANCODE_2]) // 2P Start
+			cpu->InPort[1] |= 1 << 1;
+
+		if (Keyboard[SDL_SCANCODE_DELETE]) // Tilt
+			cpu->InPort[2] |= 1 << 2;
+
+		//SDL_RenderClear(emulator->renderer);
+		//SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		//SDL_RenderFillRect(renderer, NULL);
+
+		emulator->ProcessInstruction();
+
+		//if (GetCurrentTimeEx(&StartTime) - lastInterrupt2 > ((1.0 / 60)))
+		if((GetCurrentTimeEx(&StartTime) - lastInterrupt2) > (1000000 / 120))
+		{
+			//if (cpu->interupt_enabled)
+			{
+				if (FullDraw)
+				{
+					emulator->GenerateInterrupt(2);
+
+					Render(emulator);
+					SDL_RenderPresent(emulator->renderer);
+					SDL_Delay(0);
+				}
+				//else
+					//emulator->GenerateInterrupt(1);
+
+				lastInterrupt2 = GetCurrentTimeEx(&StartTime);
+				FullDraw = !FullDraw;
+			}
+		}
+
+		//Render(window, emulator);
+
+		//SDL_RenderPresent(renderer);
+	}
+
+	SDL_DestroyRenderer(emulator->renderer);
+	SDL_DestroyWindow(emulator->window);
+
+	/*while (true)
+	{
+		emulator->ProcessInstruction();
+		std::cin.ignore(1000, '\n');
+	}*/
+
 	//printf("S: %s\n", std::bitset<8>(Utils::LeftRotate(hi, 1)).to_string().c_str());
 	//printf("S: %d\n", hi & (1 << 7));
 	
 
 	system("pause");
 	return 0;
+}
+
+char buffer[512];
+void Render(Emulator8080* emulator)
+{
+	auto cpu = emulator->GetCPU();
+	auto vram = emulator->GetVRAM();
+
+	//sprintf_s(buffer, 512, "Opcode: %02x | AF: %04x | BC: %04x | DE: %04x | HL: %04x | PC: %04x | SP: %04x",
+		//emulator->GetMemory()[cpu->PC - 1], (cpu->A << 8) | emulator->GetPSW(), *cpu->BC, *cpu->DE, *cpu->HL, cpu->PC, cpu->SP);
+
+	//RenderText(renderer, 14, buffer, 0, 0, 96, 24);
+	
+	uint8_t* pixels;
+	int pitch;
+	SDL_PixelFormat *format = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
+
+	SDL_LockTexture(emulator->texture, NULL, (void**)&pixels, &pitch);
+
+	uint32_t WHITE_COLOR = SDL_MapRGBA(format, 255, 255, 255, 255);
+	uint32_t BLACK_COLOR = SDL_MapRGBA(format, 0, 0, 0, 255);
+
+	for (size_t y = 0; y < emulator->GameHeight; y += 8)
+	{
+		for (size_t x = 0; x < emulator->GameWidth; x++)
+		{
+			int index = x * 4 + y * pitch;
+			uint32_t* p = (uint32_t*)&pixels[index];
+			uint8_t pi = vram[(x * (256 / 8)) + y / 8];
+
+			for (short i = 0; i < 8; i++)
+			{
+				*p = pi & (1 << i) ? WHITE_COLOR : BLACK_COLOR;
+				p += 224;
+			}
+		}
+	}
+
+	SDL_UnlockTexture(emulator->texture);
+
+	int gW, gH;
+	SDL_GetWindowSize(emulator->window, &gW, &gH);
+
+	SDL_Rect rect;
+	rect.x = gW/2 - emulator->GameWidth/2;
+	rect.y = gH/2 - emulator->GameHeight/2;
+	rect.w = emulator->GameWidth;
+	rect.h = emulator->GameHeight;
+
+	SDL_RenderCopyEx(emulator->renderer, emulator->texture, NULL, &rect, 0.0, NULL, SDL_RendererFlip::SDL_FLIP_VERTICAL);
+	SDL_FreeFormat(format);
 }
