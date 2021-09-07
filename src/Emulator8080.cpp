@@ -1,274 +1,303 @@
 #include "Main.h"
 
-int Disassemble8080(unsigned char* codebuffer, int pc)
+#define FOR_CPUDIAG
+
+uint8_t cycles8080[] = {
+	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, //0x00..0x0f
+	4, 10, 7, 5, 5, 5, 7, 4, 4, 10, 7, 5, 5, 5, 7, 4, //0x10..0x1f
+	4, 10, 16, 5, 5, 5, 7, 4, 4, 10, 16, 5, 5, 5, 7, 4,
+	4, 10, 13, 5, 10, 10, 10, 4, 4, 10, 13, 5, 5, 5, 7, 4,
+
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5, //0x40..0x4f
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5,
+	5, 5, 5, 5, 5, 5, 7, 5, 5, 5, 5, 5, 5, 5, 7, 5,
+	7, 7, 7, 7, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 7, 5,
+
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4, //0x80..8x4f
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+	4, 4, 4, 4, 4, 4, 7, 4, 4, 4, 4, 4, 4, 4, 7, 4,
+
+	11, 10, 10, 10, 17, 11, 7, 11, 11, 10, 10, 10, 10, 17, 7, 11, //0xc0..0xcf
+	11, 10, 10, 10, 17, 11, 7, 11, 11, 10, 10, 10, 10, 17, 7, 11,
+	11, 10, 10, 18, 17, 11, 7, 11, 11, 5, 10, 5, 17, 17, 7, 11,
+	11, 10, 10, 4, 17, 11, 7, 11, 11, 5, 10, 4, 17, 17, 7, 11,
+};
+
+int Disassemble8080(Emulator8080* emulator, int num = 0)
 {
-	unsigned char* code = &codebuffer[pc];
+	auto cpu = emulator->GetCPU();
+	auto memory = emulator->GetMemory();
+
+	unsigned char* code = &memory[cpu->PC + num];
 	int opbytes = 1;
 
-	printf("%04x\t", pc);
+	Utils::PrintDebug("%04x\t%02X\t", cpu->PC + num, *code);
 
 	switch (code[0])
 	{
-	case 0x00: Utils::PrintDebug("NOP"); break;
-	case 0x01: Utils::PrintDebug("LXI\tB,$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x02: Utils::PrintDebug("STAX\tB"); break;
-	case 0x03: Utils::PrintDebug("INX\tB"); break;
-	case 0x04: Utils::PrintDebug("INR\tB"); break;
-	case 0x05: Utils::PrintDebug("DCR\tB"); break;
-	case 0x06: Utils::PrintDebug("MVI\tB, $%02x", code[1]); opbytes = 2; break;
-	case 0x07: Utils::PrintDebug("RLC"); break;
+	case 0x00: printf("NOP"); break;
+	case 0x01: printf("LXI\tB,$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x02: printf("STAX\tB"); break;
+	case 0x03: printf("INX\tB"); break;
+	case 0x04: printf("INR\tB"); break;
+	case 0x05: printf("DCR\tB"); break;
+	case 0x06: printf("MVI\tB, $%02x", code[1]); opbytes = 2; break;
+	case 0x07: printf("RLC"); break;
 	case 0x08: break;
-	case 0x09: Utils::PrintDebug("DAD\tB"); break;
-	case 0x0a: Utils::PrintDebug("LDAX\tB"); break;
-	case 0x0b: Utils::PrintDebug("DCX\tB"); break;
-	case 0x0c: Utils::PrintDebug("INR\tC"); break;
-	case 0x0d: Utils::PrintDebug("DCR\tC"); break;
-	case 0x0e: Utils::PrintDebug("MVI\tC,$%02x", code[1]); opbytes = 2; break;
-	case 0x0f: Utils::PrintDebug("RRC"); break;
+	case 0x09: printf("DAD\tB"); break;
+	case 0x0a: printf("LDAX\tB"); break;
+	case 0x0b: printf("DCX\tB"); break;
+	case 0x0c: printf("INR\tC"); break;
+	case 0x0d: printf("DCR\tC"); break;
+	case 0x0e: printf("MVI\tC,$%02x", code[1]); opbytes = 2; break;
+	case 0x0f: printf("RRC"); break;
 	case 0x10: break;
-	case 0x11: Utils::PrintDebug("LXI\tD,$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x12: Utils::PrintDebug("STAX\tD"); break;
-	case 0x13: Utils::PrintDebug("INX\tD"); break;
-	case 0x14: Utils::PrintDebug("INR\tD"); break;
-	case 0x15: Utils::PrintDebug("DCR\tD"); break;
-	case 0x16: Utils::PrintDebug("MVI\tD, $%02x", code[1]); opbytes = 2; break;
-	case 0x17: Utils::PrintDebug("RAL"); break;
+	case 0x11: printf("LXI\tD,$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x12: printf("STAX\tD"); break;
+	case 0x13: printf("INX\tD"); break;
+	case 0x14: printf("INR\tD"); break;
+	case 0x15: printf("DCR\tD"); break;
+	case 0x16: printf("MVI\tD, $%02x", code[1]); opbytes = 2; break;
+	case 0x17: printf("RAL"); break;
 	case 0x18: break;
-	case 0x19: Utils::PrintDebug("DAD\tD"); break;
-	case 0x1a: Utils::PrintDebug("LDAX\tD"); break;
-	case 0x1b: Utils::PrintDebug("DCX\tD"); break;
-	case 0x1c: Utils::PrintDebug("INR\tE"); break;
-	case 0x1d: Utils::PrintDebug("DCR\tE"); break;
-	case 0x1e: Utils::PrintDebug("MVI\tE,$%02x", code[1]); opbytes = 2; break;
-	case 0x1f: Utils::PrintDebug("RAR"); break;
+	case 0x19: printf("DAD\tD"); break;
+	case 0x1a: printf("LDAX\tD"); break;
+	case 0x1b: printf("DCX\tD"); break;
+	case 0x1c: printf("INR\tE"); break;
+	case 0x1d: printf("DCR\tE"); break;
+	case 0x1e: printf("MVI\tE,$%02x", code[1]); opbytes = 2; break;
+	case 0x1f: printf("RAR"); break;
 	case 0x20: break;
-	case 0x21: Utils::PrintDebug("LXI\tH,$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x22: Utils::PrintDebug("SHLD\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x23: Utils::PrintDebug("INX\tH"); break;
-	case 0x24: Utils::PrintDebug("INR\tH"); break;
-	case 0x25: Utils::PrintDebug("DCR\tH"); break;
-	case 0x26: Utils::PrintDebug("MVI\tH,$%02x", code[1]); opbytes = 2; break;
-	case 0x27: Utils::PrintDebug("DAA"); break;
+	case 0x21: printf("LXI\tH,$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x22: printf("SHLD\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x23: printf("INX\tH"); break;
+	case 0x24: printf("INR\tH"); break;
+	case 0x25: printf("DCR\tH"); break;
+	case 0x26: printf("MVI\tH,$%02x", code[1]); opbytes = 2; break;
+	case 0x27: printf("DAA"); break;
 	case 0x28: break;
-	case 0x29: Utils::PrintDebug("DAD\tH"); break;
-	case 0x2a: Utils::PrintDebug("LHLD\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x2b: Utils::PrintDebug("DCX\tH"); break;
-	case 0x2c: Utils::PrintDebug("INR\tL"); break;
-	case 0x2d: Utils::PrintDebug("DCR\tL"); break;
-	case 0x2e: Utils::PrintDebug("MVI\tL, $%02x", code[1]); opbytes = 2; break;
-	case 0x2f: Utils::PrintDebug("CMA"); break;
+	case 0x29: printf("DAD\tH"); break;
+	case 0x2a: printf("LHLD\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x2b: printf("DCX\tH"); break;
+	case 0x2c: printf("INR\tL"); break;
+	case 0x2d: printf("DCR\tL"); break;
+	case 0x2e: printf("MVI\tL, $%02x", code[1]); opbytes = 2; break;
+	case 0x2f: printf("CMA"); break;
 	case 0x30: break;
-	case 0x31: Utils::PrintDebug("LXI\tSP, $%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x32: Utils::PrintDebug("STA\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x33: Utils::PrintDebug("INX\tSP"); break;
-	case 0x34: Utils::PrintDebug("INR\tM"); break;
-	case 0x35: Utils::PrintDebug("DCR\tM"); break;
-	case 0x36: Utils::PrintDebug("MVI\tM,$%02x", code[1]); opbytes = 2; break;
-	case 0x37: Utils::PrintDebug("STC"); break;
+	case 0x31: printf("LXI\tSP, $%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x32: printf("STA\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x33: printf("INX\tSP"); break;
+	case 0x34: printf("INR\tM"); break;
+	case 0x35: printf("DCR\tM"); break;
+	case 0x36: printf("MVI\tM,$%02x", code[1]); opbytes = 2; break;
+	case 0x37: printf("STC"); break;
 	case 0x38: break;
-	case 0x39: Utils::PrintDebug("DAD\tSP"); break;
-	case 0x3a: Utils::PrintDebug("LDA\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0x3b: Utils::PrintDebug("DCX\tSP"); break;
-	case 0x3c: Utils::PrintDebug("INR\tA"); break;
-	case 0x3d: Utils::PrintDebug("DCR\tA"); break;
-	case 0x3e: Utils::PrintDebug("MVI\tA,$%02x", code[1]); opbytes = 2; break;
-	case 0x3f: Utils::PrintDebug("CMC"); break;
-	case 0x40: Utils::PrintDebug("MOV\tB,B"); break;
-	case 0x41: Utils::PrintDebug("MOV\tB,C"); break;
-	case 0x42: Utils::PrintDebug("MOV\tB,D"); break;
-	case 0x43: Utils::PrintDebug("MOV\tB,E"); break;
-	case 0x44: Utils::PrintDebug("MOV\tB,H"); break;
-	case 0x45: Utils::PrintDebug("MOV\tB,L"); break;
-	case 0x46: Utils::PrintDebug("MOV\tB,M"); break;
-	case 0x47: Utils::PrintDebug("MOV\tB,A"); break;
-	case 0x48: Utils::PrintDebug("MOV\tC,B"); break;
-	case 0x49: Utils::PrintDebug("MOV\tC,C"); break;
-	case 0x4a: Utils::PrintDebug("MOV\tC,D"); break;
-	case 0x4b: Utils::PrintDebug("MOV\tC,E"); break;
-	case 0x4c: Utils::PrintDebug("MOV\tC,H"); break;
-	case 0x4d: Utils::PrintDebug("MOV\tC,L"); break;
-	case 0x4e: Utils::PrintDebug("MOV\tC,M"); break;
-	case 0x4f: Utils::PrintDebug("MOV\tC,A"); break;
-	case 0x50: Utils::PrintDebug("MOV\tD,B"); break;
-	case 0x51: Utils::PrintDebug("MOV\tD,C"); break;
-	case 0x52: Utils::PrintDebug("MOV\tD,D"); break;
-	case 0x53: Utils::PrintDebug("MOV\tD,E"); break;
-	case 0x54: Utils::PrintDebug("MOV\tD,H"); break;
-	case 0x55: Utils::PrintDebug("MOV\tD,L"); break;
-	case 0x56: Utils::PrintDebug("MOV\tD,M"); break;
-	case 0x57: Utils::PrintDebug("MOV\tD,A"); break;
-	case 0x58: Utils::PrintDebug("MOV\tE,B"); break;
-	case 0x59: Utils::PrintDebug("MOV\tE,C"); break;
-	case 0x5a: Utils::PrintDebug("MOV\tE,D"); break;
-	case 0x5b: Utils::PrintDebug("MOV\tE,E"); break;
-	case 0x5c: Utils::PrintDebug("MOV\tE,H"); break;
-	case 0x5d: Utils::PrintDebug("MOV\tE,L"); break;
-	case 0x5e: Utils::PrintDebug("MOV\tE,M"); break;
-	case 0x5f: Utils::PrintDebug("MOV\tE,A"); break;
-	case 0x60: Utils::PrintDebug("MOV\tH,B"); break;
-	case 0x61: Utils::PrintDebug("MOV\tH,C"); break;
-	case 0x62: Utils::PrintDebug("MOV\tH,D"); break;
-	case 0x63: Utils::PrintDebug("MOV\tH,E"); break;
-	case 0x64: Utils::PrintDebug("MOV\tH,H"); break;
-	case 0x65: Utils::PrintDebug("MOV\tH,L"); break;
-	case 0x66: Utils::PrintDebug("MOV\tH,M"); break;
-	case 0x67: Utils::PrintDebug("MOV\tH,A"); break;
-	case 0x68: Utils::PrintDebug("MOV\tL,B"); break;
-	case 0x69: Utils::PrintDebug("MOV\tL,C"); break;
-	case 0x6a: Utils::PrintDebug("MOV\tL,D"); break;
-	case 0x6b: Utils::PrintDebug("MOV\tL,E"); break;
-	case 0x6c: Utils::PrintDebug("MOV\tL,H"); break;
-	case 0x6d: Utils::PrintDebug("MOV\tL,L"); break;
-	case 0x6e: Utils::PrintDebug("MOV\tL,M"); break;
-	case 0x6f: Utils::PrintDebug("MOV\tL,A"); break;
-	case 0x70: Utils::PrintDebug("MOV\tM,B"); break;
-	case 0x71: Utils::PrintDebug("MOV\tM,C"); break;
-	case 0x72: Utils::PrintDebug("MOV\tM,D"); break;
-	case 0x73: Utils::PrintDebug("MOV\tM,E"); break;
-	case 0x74: Utils::PrintDebug("MOV\tM,H"); break;
-	case 0x75: Utils::PrintDebug("MOV\tM,L"); break;
-	case 0x76: Utils::PrintDebug("HLT"); break;
-	case 0x77: Utils::PrintDebug("MOV\tM,A"); break;
-	case 0x78: Utils::PrintDebug("MOV\tA,B"); break;
-	case 0x79: Utils::PrintDebug("MOV\tA,C"); break;
-	case 0x7a: Utils::PrintDebug("MOV\tA,D"); break;
-	case 0x7b: Utils::PrintDebug("MOV\tA,E"); break;
-	case 0x7c: Utils::PrintDebug("MOV\tA,H"); break;
-	case 0x7d: Utils::PrintDebug("MOV\tA,L"); break;
-	case 0x7e: Utils::PrintDebug("MOV\tA,M"); break;
-	case 0x7f: Utils::PrintDebug("MOV\tA,A"); break;
-	case 0x80: Utils::PrintDebug("ADD\tB"); break;
-	case 0x81: Utils::PrintDebug("ADD\tC"); break;
-	case 0x82: Utils::PrintDebug("ADD\tD"); break;
-	case 0x83: Utils::PrintDebug("ADD\tE"); break;
-	case 0x84: Utils::PrintDebug("ADD\tH"); break;
-	case 0x85: Utils::PrintDebug("ADD\tL"); break;
-	case 0x86: Utils::PrintDebug("ADD\tM"); break;
-	case 0x87: Utils::PrintDebug("ADD\tA"); break;
-	case 0x88: Utils::PrintDebug("ADC\tB"); break;
-	case 0x89: Utils::PrintDebug("ADC\tC"); break;
-	case 0x8a: Utils::PrintDebug("ADC\tD"); break;
-	case 0x8b: Utils::PrintDebug("ADC\tE"); break;
-	case 0x8c: Utils::PrintDebug("ADC\tH"); break;
-	case 0x8d: Utils::PrintDebug("ADC\tL"); break;
-	case 0x8e: Utils::PrintDebug("ADC\tM"); break;
-	case 0x8f: Utils::PrintDebug("ADC\tA"); break;
-	case 0x90: Utils::PrintDebug("SUB\tB"); break;
-	case 0x91: Utils::PrintDebug("SUB\tC"); break;
-	case 0x92: Utils::PrintDebug("SUB\tD"); break;
-	case 0x93: Utils::PrintDebug("SUB\tE"); break;
-	case 0x94: Utils::PrintDebug("SUB\tH"); break;
-	case 0x95: Utils::PrintDebug("SUB\tL"); break;
-	case 0x96: Utils::PrintDebug("SUB\tM"); break;
-	case 0x97: Utils::PrintDebug("SUB\tA"); break;
-	case 0x98: Utils::PrintDebug("SBB\tB"); break;
-	case 0x99: Utils::PrintDebug("SBB\tC"); break;
-	case 0x9a: Utils::PrintDebug("SBB\tD"); break;
-	case 0x9b: Utils::PrintDebug("SBB\tE"); break;
-	case 0x9c: Utils::PrintDebug("SBB\tH"); break;
-	case 0x9d: Utils::PrintDebug("SBB\tL"); break;
-	case 0x9e: Utils::PrintDebug("SBB\tM"); break;
-	case 0x9f: Utils::PrintDebug("SBB\tA"); break;
-	case 0xa0: Utils::PrintDebug("ANA\tB"); break;
-	case 0xa1: Utils::PrintDebug("ANA\tC"); break;
-	case 0xa2: Utils::PrintDebug("ANA\tD"); break;
-	case 0xa3: Utils::PrintDebug("ANA\tE"); break;
-	case 0xa4: Utils::PrintDebug("ANA\tH"); break;
-	case 0xa5: Utils::PrintDebug("ANA\tL"); break;
-	case 0xa6: Utils::PrintDebug("ANA\tM"); break;
-	case 0xa7: Utils::PrintDebug("ANA\tA"); break;
-	case 0xa8: Utils::PrintDebug("XRA\tB"); break;
-	case 0xa9: Utils::PrintDebug("XRA\tC"); break;
-	case 0xaa: Utils::PrintDebug("XRA\tD"); break;
-	case 0xab: Utils::PrintDebug("XRA\tE"); break;
-	case 0xac: Utils::PrintDebug("XRA\tH"); break;
-	case 0xad: Utils::PrintDebug("XRA\tL"); break;
-	case 0xae: Utils::PrintDebug("XRA\tM"); break;
-	case 0xaf: Utils::PrintDebug("XRA\tA"); break;
-	case 0xb0: Utils::PrintDebug("ORA\tB"); break;
-	case 0xb1: Utils::PrintDebug("ORA\tC"); break;
-	case 0xb2: Utils::PrintDebug("ORA\tD"); break;
-	case 0xb3: Utils::PrintDebug("ORA\tE"); break;
-	case 0xb4: Utils::PrintDebug("ORA\tH"); break;
-	case 0xb5: Utils::PrintDebug("ORA\tL"); break;
-	case 0xb6: Utils::PrintDebug("ORA\tM"); break;
-	case 0xb7: Utils::PrintDebug("ORA\tA"); break;
-	case 0xb8: Utils::PrintDebug("CMP\tB"); break;
-	case 0xb9: Utils::PrintDebug("CMP\tC"); break;
-	case 0xba: Utils::PrintDebug("CMP\tD"); break;
-	case 0xbb: Utils::PrintDebug("CMP\tE"); break;
-	case 0xbc: Utils::PrintDebug("CMP\tH"); break;
-	case 0xbd: Utils::PrintDebug("CMP\tL"); break;
-	case 0xbe: Utils::PrintDebug("CMP\tM"); break;
-	case 0xbf: Utils::PrintDebug("CMP\tA"); break;
-	case 0xc0: Utils::PrintDebug("RNZ"); break;
-	case 0xc1: Utils::PrintDebug("POP\tB"); break;
-	case 0xc2: Utils::PrintDebug("JNZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xc3: Utils::PrintDebug("JMP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xc4: Utils::PrintDebug("CNZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xc5: Utils::PrintDebug("PUSH\tB"); break;
-	case 0xc6: Utils::PrintDebug("ADI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xc7: Utils::PrintDebug("RST\t0"); break;
-	case 0xc8: Utils::PrintDebug("RZ"); break;
-	case 0xc9: Utils::PrintDebug("RET"); break;
-	case 0xca: Utils::PrintDebug("JZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x39: printf("DAD\tSP"); break;
+	case 0x3a: printf("LDA\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0x3b: printf("DCX\tSP"); break;
+	case 0x3c: printf("INR\tA"); break;
+	case 0x3d: printf("DCR\tA"); break;
+	case 0x3e: printf("MVI\tA,$%02x", code[1]); opbytes = 2; break;
+	case 0x3f: printf("CMC"); break;
+	case 0x40: printf("MOV\tB,B"); break;
+	case 0x41: printf("MOV\tB,C"); break;
+	case 0x42: printf("MOV\tB,D"); break;
+	case 0x43: printf("MOV\tB,E"); break;
+	case 0x44: printf("MOV\tB,H"); break;
+	case 0x45: printf("MOV\tB,L"); break;
+	case 0x46: printf("MOV\tB,M"); break;
+	case 0x47: printf("MOV\tB,A"); break;
+	case 0x48: printf("MOV\tC,B"); break;
+	case 0x49: printf("MOV\tC,C"); break;
+	case 0x4a: printf("MOV\tC,D"); break;
+	case 0x4b: printf("MOV\tC,E"); break;
+	case 0x4c: printf("MOV\tC,H"); break;
+	case 0x4d: printf("MOV\tC,L"); break;
+	case 0x4e: printf("MOV\tC,M"); break;
+	case 0x4f: printf("MOV\tC,A"); break;
+	case 0x50: printf("MOV\tD,B"); break;
+	case 0x51: printf("MOV\tD,C"); break;
+	case 0x52: printf("MOV\tD,D"); break;
+	case 0x53: printf("MOV\tD,E"); break;
+	case 0x54: printf("MOV\tD,H"); break;
+	case 0x55: printf("MOV\tD,L"); break;
+	case 0x56: printf("MOV\tD,M"); break;
+	case 0x57: printf("MOV\tD,A"); break;
+	case 0x58: printf("MOV\tE,B"); break;
+	case 0x59: printf("MOV\tE,C"); break;
+	case 0x5a: printf("MOV\tE,D"); break;
+	case 0x5b: printf("MOV\tE,E"); break;
+	case 0x5c: printf("MOV\tE,H"); break;
+	case 0x5d: printf("MOV\tE,L"); break;
+	case 0x5e: printf("MOV\tE,M"); break;
+	case 0x5f: printf("MOV\tE,A"); break;
+	case 0x60: printf("MOV\tH,B"); break;
+	case 0x61: printf("MOV\tH,C"); break;
+	case 0x62: printf("MOV\tH,D"); break;
+	case 0x63: printf("MOV\tH,E"); break;
+	case 0x64: printf("MOV\tH,H"); break;
+	case 0x65: printf("MOV\tH,L"); break;
+	case 0x66: printf("MOV\tH,M"); break;
+	case 0x67: printf("MOV\tH,A"); break;
+	case 0x68: printf("MOV\tL,B"); break;
+	case 0x69: printf("MOV\tL,C"); break;
+	case 0x6a: printf("MOV\tL,D"); break;
+	case 0x6b: printf("MOV\tL,E"); break;
+	case 0x6c: printf("MOV\tL,H"); break;
+	case 0x6d: printf("MOV\tL,L"); break;
+	case 0x6e: printf("MOV\tL,M"); break;
+	case 0x6f: printf("MOV\tL,A"); break;
+	case 0x70: printf("MOV\tM,B"); break;
+	case 0x71: printf("MOV\tM,C"); break;
+	case 0x72: printf("MOV\tM,D"); break;
+	case 0x73: printf("MOV\tM,E"); break;
+	case 0x74: printf("MOV\tM,H"); break;
+	case 0x75: printf("MOV\tM,L"); break;
+	case 0x76: printf("HLT"); break;
+	case 0x77: printf("MOV\tM,A"); break;
+	case 0x78: printf("MOV\tA,B"); break;
+	case 0x79: printf("MOV\tA,C"); break;
+	case 0x7a: printf("MOV\tA,D"); break;
+	case 0x7b: printf("MOV\tA,E"); break;
+	case 0x7c: printf("MOV\tA,H"); break;
+	case 0x7d: printf("MOV\tA,L"); break;
+	case 0x7e: printf("MOV\tA,M"); break;
+	case 0x7f: printf("MOV\tA,A"); break;
+	case 0x80: printf("ADD\tB"); break;
+	case 0x81: printf("ADD\tC"); break;
+	case 0x82: printf("ADD\tD"); break;
+	case 0x83: printf("ADD\tE"); break;
+	case 0x84: printf("ADD\tH"); break;
+	case 0x85: printf("ADD\tL"); break;
+	case 0x86: printf("ADD\tM"); break;
+	case 0x87: printf("ADD\tA"); break;
+	case 0x88: printf("ADC\tB"); break;
+	case 0x89: printf("ADC\tC"); break;
+	case 0x8a: printf("ADC\tD"); break;
+	case 0x8b: printf("ADC\tE"); break;
+	case 0x8c: printf("ADC\tH"); break;
+	case 0x8d: printf("ADC\tL"); break;
+	case 0x8e: printf("ADC\tM"); break;
+	case 0x8f: printf("ADC\tA"); break;
+	case 0x90: printf("SUB\tB"); break;
+	case 0x91: printf("SUB\tC"); break;
+	case 0x92: printf("SUB\tD"); break;
+	case 0x93: printf("SUB\tE"); break;
+	case 0x94: printf("SUB\tH"); break;
+	case 0x95: printf("SUB\tL"); break;
+	case 0x96: printf("SUB\tM"); break;
+	case 0x97: printf("SUB\tA"); break;
+	case 0x98: printf("SBB\tB"); break;
+	case 0x99: printf("SBB\tC"); break;
+	case 0x9a: printf("SBB\tD"); break;
+	case 0x9b: printf("SBB\tE"); break;
+	case 0x9c: printf("SBB\tH"); break;
+	case 0x9d: printf("SBB\tL"); break;
+	case 0x9e: printf("SBB\tM"); break;
+	case 0x9f: printf("SBB\tA"); break;
+	case 0xa0: printf("ANA\tB"); break;
+	case 0xa1: printf("ANA\tC"); break;
+	case 0xa2: printf("ANA\tD"); break;
+	case 0xa3: printf("ANA\tE"); break;
+	case 0xa4: printf("ANA\tH"); break;
+	case 0xa5: printf("ANA\tL"); break;
+	case 0xa6: printf("ANA\tM"); break;
+	case 0xa7: printf("ANA\tA"); break;
+	case 0xa8: printf("XRA\tB"); break;
+	case 0xa9: printf("XRA\tC"); break;
+	case 0xaa: printf("XRA\tD"); break;
+	case 0xab: printf("XRA\tE"); break;
+	case 0xac: printf("XRA\tH"); break;
+	case 0xad: printf("XRA\tL"); break;
+	case 0xae: printf("XRA\tM"); break;
+	case 0xaf: printf("XRA\tA"); break;
+	case 0xb0: printf("ORA\tB"); break;
+	case 0xb1: printf("ORA\tC"); break;
+	case 0xb2: printf("ORA\tD"); break;
+	case 0xb3: printf("ORA\tE"); break;
+	case 0xb4: printf("ORA\tH"); break;
+	case 0xb5: printf("ORA\tL"); break;
+	case 0xb6: printf("ORA\tM"); break;
+	case 0xb7: printf("ORA\tA"); break;
+	case 0xb8: printf("CMP\tB"); break;
+	case 0xb9: printf("CMP\tC"); break;
+	case 0xba: printf("CMP\tD"); break;
+	case 0xbb: printf("CMP\tE"); break;
+	case 0xbc: printf("CMP\tH"); break;
+	case 0xbd: printf("CMP\tL"); break;
+	case 0xbe: printf("CMP\tM"); break;
+	case 0xbf: printf("CMP\tA"); break;
+	case 0xc0: printf("RNZ"); break;
+	case 0xc1: printf("POP\tB"); break;
+	case 0xc2: printf("JNZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xc3: printf("JMP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xc4: printf("CNZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xc5: printf("PUSH\tB"); break;
+	case 0xc6: printf("ADI\t$%02x", code[1]); opbytes = 2; break;
+	case 0xc7: printf("RST\t0"); break;
+	case 0xc8: printf("RZ"); break;
+	case 0xc9: printf("RET\t%04x", *(uint16_t*)&memory[cpu->SP]); break;
+	case 0xca: printf("JZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
 	case 0xcb: break;
-	case 0xcc: Utils::PrintDebug("CZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xcd: Utils::PrintDebug("CALL\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xce: Utils::PrintDebug("ACI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xcf: Utils::PrintDebug("RST\t1"); break;
-	case 0xd0: Utils::PrintDebug("RNC"); break;
-	case 0xd1: Utils::PrintDebug("POP\tD"); break;
-	case 0xd2: Utils::PrintDebug("JNC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xd3: Utils::PrintDebug("OUT\t$%02x", code[1]); opbytes = 2; break;
-	case 0xd4: Utils::PrintDebug("CNC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xd5: Utils::PrintDebug("PUSH\tD"); break;
-	case 0xd6: Utils::PrintDebug("SUI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xd7: Utils::PrintDebug("RST\t2"); break;
-	case 0xd8: Utils::PrintDebug("RC"); break;
+	case 0xcc: printf("CZ\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xcd: printf("CALL\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xce: printf("ACI\t$%02x", code[1]); opbytes = 2; break;
+	case 0xcf: printf("RST\t1"); break;
+	case 0xd0: printf("RNC"); break;
+	case 0xd1: printf("POP\tD"); break;
+	case 0xd2: printf("JNC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xd3: printf("OUT\t$%02x", code[1]); opbytes = 2; break;
+	case 0xd4: printf("CNC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xd5: printf("PUSH\tD"); break;
+	case 0xd6: printf("SUI\t$%02x", code[1]); opbytes = 2; break;
+	case 0xd7: printf("RST\t2"); break;
+	case 0xd8: printf("RC"); break;
 	case 0xd9: break;
-	case 0xda: Utils::PrintDebug("JC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xdb: Utils::PrintDebug("IN\t$%02x", code[1]); opbytes = 2; break;
-	case 0xdc: Utils::PrintDebug("CC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xda: printf("JC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xdb: printf("IN\t$%02x", code[1]); opbytes = 2; break;
+	case 0xdc: printf("CC\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
 	case 0xdd: break;
-	case 0xde: Utils::PrintDebug("SBI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xdf: Utils::PrintDebug("RST\t3"); break;
-	case 0xe0: Utils::PrintDebug("RPO"); break;
-	case 0xe1: Utils::PrintDebug("POP\tH"); break;
-	case 0xe2: Utils::PrintDebug("JPO\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xe3: Utils::PrintDebug("XTHL"); break;
-	case 0xe4: Utils::PrintDebug("CPO\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xe5: Utils::PrintDebug("PUSH\tH"); break;
-	case 0xe6: Utils::PrintDebug("ANI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xe7: Utils::PrintDebug("RST\t4"); break;
-	case 0xe8: Utils::PrintDebug("RPE"); break;
-	case 0xe9: Utils::PrintDebug("PCHL"); break;
-	case 0xea: Utils::PrintDebug("JPE\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xeb: Utils::PrintDebug("XCHG"); break;
-	case 0xec: Utils::PrintDebug("CPE\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xde: printf("SBI\t$%02x", code[1]); opbytes = 2; break;
+	case 0xdf: printf("RST\t3"); break;
+	case 0xe0: printf("RPO"); break;
+	case 0xe1: printf("POP\tH"); break;
+	case 0xe2: printf("JPO\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xe3: printf("XTHL"); break;
+	case 0xe4: printf("CPO\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xe5: printf("PUSH\tH"); break;
+	case 0xe6: printf("ANI\t$%02x", code[1]); opbytes = 2; break;
+	case 0xe7: printf("RST\t4"); break;
+	case 0xe8: printf("RPE"); break;
+	case 0xe9: printf("PCHL"); break;
+	case 0xea: printf("JPE\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xeb: printf("XCHG"); break;
+	case 0xec: printf("CPE\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
 	case 0xed: break;
-	case 0xee: Utils::PrintDebug("XRI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xef: Utils::PrintDebug("RST\t5"); break;
-	case 0xf0: Utils::PrintDebug("RP"); break;
-	case 0xf1: Utils::PrintDebug("POP\tPSW"); break;
-	case 0xf2: Utils::PrintDebug("JP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xf3: Utils::PrintDebug("DI"); break;
-	case 0xf4: Utils::PrintDebug("CP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xf5: Utils::PrintDebug("PUSH\tPSW"); break;
-	case 0xf6: Utils::PrintDebug("ORI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xf7: Utils::PrintDebug("RST\t6"); break;
-	case 0xf8: Utils::PrintDebug("RM"); break;
-	case 0xf9: Utils::PrintDebug("SPHL"); break;
-	case 0xfa: Utils::PrintDebug("JM\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
-	case 0xfb: Utils::PrintDebug("EI"); break;
-	case 0xfc: Utils::PrintDebug("CM\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xee: printf("XRI\t$%02x", code[1]); opbytes = 2; break;
+	case 0xef: printf("RST\t5"); break;
+	case 0xf0: printf("RP"); break;
+	case 0xf1: printf("POP\tPSW"); break;
+	case 0xf2: printf("JP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xf3: printf("DI"); break;
+	case 0xf4: printf("CP\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xf5: printf("PUSH\tPSW"); break;
+	case 0xf6: printf("ORI\t$%02x", code[1]); opbytes = 2; break;
+	case 0xf7: printf("RST\t6"); break;
+	case 0xf8: printf("RM"); break;
+	case 0xf9: printf("SPHL"); break;
+	case 0xfa: printf("JM\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
+	case 0xfb: printf("EI"); break;
+	case 0xfc: printf("CM\t$%02x%02x", code[2], code[1]); opbytes = 3; break;
 	case 0xfd: break;
-	case 0xfe: Utils::PrintDebug("CPI\t$%02x", code[1]); opbytes = 2; break;
-	case 0xff: Utils::PrintDebug("RST\t7"); break;
+	case 0xfe: printf("CPI\t$%02x", code[1]); opbytes = 2; break;
+	case 0xff: printf("RST\t7"); break;
 	}
 
 	//Utils::PrintDebug("\t ret: %d\n", opbytes);
 	//Utils::PrintDebug("\n");
+	printf("\n");
+
 	return opbytes;
 }
 
@@ -279,13 +308,13 @@ Emulator8080::Emulator8080()
 	this->cpu.InPort[2] &= 0b10001011;
 }
 
-Emulator8080::Emulator8080(const char* fileName) :
+Emulator8080::Emulator8080(const char* fileName, int startOffset) :
 	Emulator8080()
 {
-	this->Load(fileName);
+	this->Load(fileName, startOffset);
 }
 
-void Emulator8080::Load(const char* fileName)
+void Emulator8080::Load(const char* fileName, int startOffset)
 {
 	FILE* rom = fopen(fileName, "rb");
 	if (rom == nullptr)
@@ -298,12 +327,12 @@ void Emulator8080::Load(const char* fileName)
 	int fileSize = ftell(rom);
 	fseek(rom, 0, SEEK_SET);
 
-	fread((void*)this->memory, 1, fileSize, rom);
+	fread((void*)&this->memory[startOffset], 1, fileSize, rom);
 }
 
 void Emulator8080::GenerateInterrupt(int interrupt_num)
 {
-	if (!this->cpu.interupt_enabled)
+	if (!this->cpu.interrupt_enabled)
 		return;
 
 	//perform "PUSH PC"
@@ -313,10 +342,10 @@ void Emulator8080::GenerateInterrupt(int interrupt_num)
 	this->cpu.PC = 8 * interrupt_num;
 
 	//"DI"
-	this->cpu.interupt_enabled = false;
+	this->cpu.interrupt_enabled = false;
 }
 
-void Emulator8080::ProcessInstruction()
+uint8_t Emulator8080::ProcessInstruction()
 {
 	unsigned char* opcode = &this->memory[this->cpu.PC];
 
@@ -405,7 +434,7 @@ void Emulator8080::ProcessInstruction()
 		case 0x09:
 		{
 			this->cpu.flags.C = ((*this->cpu.HL) + (*this->cpu.BC)) > 0xFFFF;
-			*this->cpu.HL += *this->cpu.BC;
+			(*this->cpu.HL) += (*this->cpu.BC);
 			break;
 		}
 
@@ -473,7 +502,7 @@ void Emulator8080::ProcessInstruction()
 		//STAX D
 		case 0x12:
 		{
-			*this->cpu.DE = this->cpu.A;
+			this->WriteMemory(*this->cpu.DE, this->cpu.A);
 			break;
 		}
 
@@ -530,7 +559,7 @@ void Emulator8080::ProcessInstruction()
 		case 0x19:
 		{
 			this->cpu.flags.C = ((*this->cpu.HL) + (*this->cpu.DE)) > 0xFFFF;
-			*this->cpu.HL += *this->cpu.DE;
+			(*this->cpu.HL) += (*this->cpu.DE);
 			break;
 		}
 
@@ -640,12 +669,11 @@ void Emulator8080::ProcessInstruction()
 		//DAA
 		case 0x27:
 		{
-			uint8_t msb = this->cpu.A >> 4;
 			uint8_t lsb = this->cpu.A & 0xF;
-
 			if (lsb > 9 || this->cpu.flags.AC)
 				this->cpu.A += 0x06; //adds six to the accumulator
 
+			uint8_t msb = this->cpu.A >> 4;
 			if (msb > 9 || this->cpu.flags.C)
 				this->cpu.A += 0x60; //adds six to the most significant 4 bits
 
@@ -818,7 +846,7 @@ void Emulator8080::ProcessInstruction()
 		//INR A
 		case 0x3c:
 		{
-			this->CalculateFlags(this->cpu.A + 1, true, true, false, true, false);
+			this->CalculateFlags(this->cpu.A + 1, true, true, false, true, true);
 			this->cpu.A++;
 			break;
 		}
@@ -826,7 +854,7 @@ void Emulator8080::ProcessInstruction()
 		//DCR A
 		case 0x3d:
 		{
-			this->CalculateFlags(this->cpu.A - 1, true, true, false, true, false);
+			this->CalculateFlags(this->cpu.A - 1, true, true, false, true, true);
 			this->cpu.A--;
 			break;
 		}
@@ -1900,9 +1928,9 @@ void Emulator8080::ProcessInstruction()
 		//ACI D8
 		case 0xce:
 		{
-			this->CalculateFlags(this->cpu.A + opcode[1], true, true, true, true, true);
-			this->cpu.A += opcode[1];
-			this->cpu.PC += 2;
+			this->CalculateFlags(this->cpu.A + opcode[1] + this->cpu.flags.C, true, true, true, true, true);
+			this->cpu.A += (opcode[1] + this->cpu.flags.C);
+			this->cpu.PC += 1;
 
 			break;
 		}
@@ -2236,7 +2264,7 @@ void Emulator8080::ProcessInstruction()
 		case 0xf1:
 		{
 			uint16_t pop = this->Pop();
-			this->cpu.A = pop >> 8;
+			this->cpu.A = (pop >> 8) & 0xFF00;
 
 			std::bitset<8> psw(pop & 0xFF);
 			this->cpu.flags.C = psw.test(0);
@@ -2261,7 +2289,7 @@ void Emulator8080::ProcessInstruction()
 		//DI
 		case 0xf3:
 		{
-			this->cpu.interupt_enabled = false;
+			this->cpu.interrupt_enabled = false;
 			break;
 		}
 
@@ -2332,7 +2360,7 @@ void Emulator8080::ProcessInstruction()
 		//EI
 		case 0xfb:
 		{
-			this->cpu.interupt_enabled = true;
+			this->cpu.interrupt_enabled = true;
 			break;
 		}
 
@@ -2371,6 +2399,8 @@ void Emulator8080::ProcessInstruction()
 			break;
 		}
 	}
+
+	return cycles8080[*opcode];
 }
 
 void Emulator8080::UnimplementedInstruction()

@@ -39,19 +39,21 @@ public:
 
 		//Program counter and stack pointer
 		uint16_t PC = 0; //program counter
-		uint16_t SP = 0x2000; //stack pointer
+		uint16_t SP = 0; //stack pointer - 2300 is the lowest stack region
 
-		bool interupt_enabled = false;
+		uint32_t cycles = 0;
+
+		bool interrupt_enabled = false;
 
 		//Flags
 		FlagsStruct flags;
 	};
 
 	Emulator8080();
-	Emulator8080(const char* fileName);
+	Emulator8080(const char* fileName, int startOffset = 0);
 
-	void Load(const char* fileName);
-	unsigned char* GetMemory(void) { return this->memory; }
+	void Load(const char* fileName, int startOffset = 0);
+	unsigned char* GetMemory(void) { return &this->memory[0]; }
 	unsigned char* GetRAM(void) { return &this->memory[0x2000]; }
 	unsigned char* GetVRAM(void) { return &this->memory[0x2400]; }
 	CPUStruct* GetCPU(void) { return &this->cpu; }
@@ -71,7 +73,7 @@ public:
 		return (uint16_t)psw.to_ulong();
 	}
 
-	void ProcessInstruction();
+	uint8_t ProcessInstruction();
 	void GenerateInterrupt(int interrupt_num);
 
 	const uint16_t GameWidth = 224;
@@ -80,10 +82,18 @@ public:
 	SDL_Window* window = nullptr;
 	SDL_Renderer* renderer = nullptr;
 	SDL_Texture* texture = nullptr;
+	TTF_Font* font = nullptr;
 
 private:
 	void UnimplementedInstruction(void);
-	uint16_t ConvertToNumber(unsigned char high, unsigned char low) { return (high << 8) | low; }
+	uint16_t ConvertToNumber(unsigned char high, unsigned char low)
+	{
+		uint16_t res = (high << 8) | low;
+		//if (res > 0x3FFF)
+			//printf("Number higher than 0x3FFF: %d\n", res);
+
+		return res;
+	}
 
 	inline void PerformOr(uint16_t number)
 	{
@@ -157,8 +167,15 @@ private:
 
 	inline void Push(uint16_t value)
 	{
-		*(uint16_t*)&this->memory[this->cpu.SP - 2] = value;
 		this->cpu.SP -= 2;
+		*(uint16_t*)&this->memory[this->cpu.SP] = value;
+
+		//uint8_t hi, lo;
+		//hi = (value >> 8) & 0xff;
+		//lo = value & 0xff;
+
+		//WriteMemory(this->cpu.SP + 1, hi);
+		//WriteMemory(this->cpu.SP, lo);
 	}
 
 	inline uint16_t Pop()
@@ -171,7 +188,7 @@ private:
 	inline void CalculateFlags(uint16_t answer, bool zero = true, bool sign = true, bool carry = true, bool parity = true, bool auxc = true)
 	{
 		if(zero) this->cpu.flags.Z = ((answer & 0xFF) == 0);
-		if(sign) this->cpu.flags.S = (answer & 0x80);
+		if(sign) this->cpu.flags.S = (answer & 0xff) >> 7;
 		if(carry) this->cpu.flags.C = (answer > 0xFF);
 		if(parity) this->cpu.flags.P = this->Parity<uint8_t>(answer & 0xFF);
 		if(auxc) this->cpu.flags.AC = this->HalfCarry(answer, carry);
@@ -181,7 +198,7 @@ private:
 	inline bool Parity(T number)
 	{
 		std::bitset<sizeof T * 8> parityNumber = std::bitset<sizeof T * 8>(number);
-		return parityNumber.count() % 2;
+		return (bool)((parityNumber.count() % 2) == 0);
 	}
 
 	inline bool HalfCarry(uint32_t number, bool inCarryValue)
@@ -193,3 +210,5 @@ private:
 	CPUStruct cpu;
 	unsigned char memory[64 * 1024] = { 0 };
 };
+
+int Disassemble8080(Emulator8080* emulator, int num);
